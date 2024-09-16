@@ -2,7 +2,7 @@
 
 install_gpg() {
     # Test if GPG is installed, return if true
-    $(`which gpg`)
+    which gpg > /dev/null
     if [ $? == 0 ]; then
         echo "GPG already installed"
         return 0
@@ -27,8 +27,8 @@ install_gpg() {
     done
     #################################################
     echo $PKG_MANAGER
-    # Install gpg and check that it installed correctly
-    $(sudo "$PKG_MANAGER" install gpg)
+    # Install gpg and check that the install succeeded
+    sudo $PKG_MANAGER install gpg -y
     if [ ! $? == 0 ]; then
         echo "Failed to install GPG, please do so manually"
         exit 1
