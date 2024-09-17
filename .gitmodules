@@ -1,3 +1,6 @@
 [submodule "yadm"]
 	path = yadm
 	url = https://github.com/TheLocehiliosan/yadm.git
+[submodule "personal-infrastructure-dotfiles"]
+	path = personal-infrastructure-dotfiles
+	url = https://github.com/SymbionicNigel/personal-infrastructure-dotfiles.git
