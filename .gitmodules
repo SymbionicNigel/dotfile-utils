@@ -4,4 +4,3 @@
 [submodule "personal-infrastructure-dotfiles"]
 	path = personal-infrastructure-dotfiles
 	url = https://github.com/SymbionicNigel/personal-infrastructure-dotfiles.git
-	branch = master
