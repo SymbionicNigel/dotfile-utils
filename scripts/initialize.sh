@@ -1,8 +1,10 @@
 #!/bin/bash Bash
 
+SUBMODULE_NAME=""
+
 initialize_yadm() {
     # Make sure to initialize 
-    git submodule init
+    # git submodule update --init --recursive
 
     # Symlink the downloaded yadm script to the users path
     YADM_SYMLINK_DESTINATION="/home/$USER/.local/bin/yadm"
@@ -11,7 +13,7 @@ initialize_yadm() {
         echo "File already symlinked at $YADM_SYMLINK_DESTINATION"
     elif [ -e "$YADM_SYMLINK_DESTINATION" ]; then
         # File exists already and is not a symlink
-        echo "Non-symlinked located at $YADM_SYMLINK_DESTINATION"
+        echo "Non-symlinked located at $YADM_SYMLINK_DESTINATION, please delete"
         exit 1
     else
         # file does not exist at all 
@@ -37,7 +39,7 @@ initialize_project_dotfiles() {
 
 
     # Read repository name from parent directories remote url
-    PARENT_REPOSITORY_REMOTE=`git -C .. config --get remote.origin.url`
+    PARENT_REPOSITORY_REMOTE=`git config --get remote.origin.url`
     SUBMODULE_NAME="$(basename -s ".git" $PARENT_REPOSITORY_REMOTE)-dotfiles"
     echo "Submodule Parsed: $SUBMODULE_NAME"
 
@@ -57,6 +59,7 @@ initialize_project_dotfiles() {
     # git submodule update --remote $SUBMODULE_NAME
 }
 
-source $PWD/scripts/install_package.sh gpg
+source "$PWD/scripts/install_package.sh" gpg
 initialize_yadm
 initialize_project_dotfiles
+source "$PWD/scripts/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"

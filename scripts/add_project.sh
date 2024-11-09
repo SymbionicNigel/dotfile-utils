@@ -16,20 +16,20 @@ get_submodule_name() {
 }
 
 make_new_folder() {
-    rm -rf "$PWD/$SUBMODULE_NAME"
-    echo "Submodule directory cleared"
-    mkdir "$SUBMODULE_NAME" 1> /dev/null
-    if  [ $? -ne 0 ] && [ ! -d $SUBMODULE_NAME ]; then
+    rm -rf "$PWD/.secrets"
+    echo ".secrets directory cleared"
+    mkdir ".secrets" 1> /dev/null
+    if  [ $? -ne 0 ] && [ ! -d ".secrets" ]; then
         exit 1
     elif [ $? == 0 ]; then
-        echo "$PWD/$SUBMODULE_NAME created"
+        echo "$PWD/.secrets created"
     else
         echo "folder already created"
     fi
 }
 
 initialize_submodule_repo() {
-    SUBMODULE_DIR="$PWD/$SUBMODULE_NAME"
+    SUBMODULE_DIR="$PWD/.secrets"
     # Prompt for git remote with default parsed from parent repository
     read -p $'\nProvide a git remote to store this new module in:\n' -e -i "$(dirname $PARENT_REPOSITORY_REMOTE)/$SUBMODULE_NAME.git" REMOTE_URL
     # Prompt for git default branch with default parsed from git config

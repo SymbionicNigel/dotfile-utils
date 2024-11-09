@@ -15,23 +15,21 @@ If you are another user, change your remotes to point this to your own git repos
 
 ```bash
 git submodule add <this-repositories-remote-url>
-cd dotfiles
-bash scripts/initialize.sh
+bash dotfiles/scripts/initialize.sh
 ```
 
 Some expectations to take into consideration when running this:
 
 1. Your default branch in github has been set to `master`
-2. These scripts are meant to be ran from the `*/dotfiles` directory
-3. `sudo` priveledges will be asked for to install gpg and jq when running the initialize script if not installed already
+2. These scripts are meant to be ran from the root of the projects directory
+3. `sudo` privledges will be asked for to install gpg and jq when running the initialize script if not installed already
+4. By default a `.secrets` folder under the parent repository will be used for when setting the Dotfiles submodules.
 
 ### On Clone/Initialization
 
 ### Adding files to storage
 
 ### Encryption/GPG
-
-### Adding another project as a submodule
 
 ## Choice of using YADM
 
