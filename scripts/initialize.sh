@@ -3,50 +3,47 @@
 SUBMODULE_NAME=""
 
 initialize_yadm() {
-    # Make sure to initialize 
-    # git submodule update --init --recursive
-
-    # Symlink the downloaded yadm script to the users path
-    YADM_SYMLINK_DESTINATION="/home/$USER/.local/bin/yadm"
+    YADM_SYMLINK_DESTINATION=$(readlink -f "/home/$USER/.local/bin/yadm")
+    RELATIVE_YADM_LOCATION=$(readlink -e "$SCRIPT_DIR/../yadm/yadm")
+    
+    git submodule update --init --recursive "$RELATIVE_YADM_LOCATION"
+    
     if [ -L "$YADM_SYMLINK_DESTINATION" ]; then
+        unlink "$YADM_SYMLINK_DESTINATION"
         # File is already symlinked no action needed
-        echo "File already symlinked at $YADM_SYMLINK_DESTINATION"
-    elif [ -e "$YADM_SYMLINK_DESTINATION" ]; then
-        # File exists already and is not a symlink
-        echo "Non-symlinked located at $YADM_SYMLINK_DESTINATION, please delete"
-        exit 1
-    else
-        # file does not exist at all 
-        ln -s "$PWD/yadm/yadm" "$YADM_SYMLINK_DESTINATION"
-        if [ -L "$YADM_SYMLINK_DESTINATION" ]; then
-            # File is already symlinked no action needed
-            echo "Symlink success"
-        else
-            echo "Symlink failure"
-            exit 1
-        fi
+        echo "Unlinked file symlinked at $YADM_SYMLINK_DESTINATION"
     fi
+    
+    if [ -e "$YADM_SYMLINK_DESTINATION" ]; then
+        rm -rf "$YADM_SYMLINK_DESTINATION"
+    fi
+
+    ln -s "$RELATIVE_YADM_LOCATION" "$YADM_SYMLINK_DESTINATION"
+    
+    if [ -L "$YADM_SYMLINK_DESTINATION" ]; then
+        echo "Symlink success"
+    else
+        echo "Symlink failure"
+        exit 1
+    fi
+
     git submodule update --remote yadm
 }
 
 initialize_project_dotfiles() {
     # Once YADM is initialized run submodule initialization for parent repository
-    if [ ! -e "./../.git" ]; then
+    if [ ! -e "$SCRIPT_DIR/../.git" ]; then
         echo "Parent Git Repository Not Initialized"
         exit 1
     fi
     echo "Parent Directory .git exists"
-
-
     # Read repository name from parent directories remote url
     PARENT_REPOSITORY_REMOTE=`git config --get remote.origin.url`
-    SUBMODULE_NAME="$(basename -s ".git" $PARENT_REPOSITORY_REMOTE)-dotfiles"
+    SUBMODULE_NAME="$(basename -s ".git" "$PARENT_REPOSITORY_REMOTE")-dotfiles"
     echo "Submodule Parsed: $SUBMODULE_NAME"
-
-    if [ ! -d $SUBMODULE_NAME ] || [ ! -e "$SUBMODULE_NAME/.git" ]; then
+    if [ ! -d "$SUBMODULE_NAME" ] || [ ! -e "$SUBMODULE_NAME/.git" ]; then
         echo "Submodule not found, adding $SUBMODULE_NAME"
-        source $PWD/scripts/add_project.sh <<< ""
-
+        source "$SCRIPT_DIR/add_project.sh" <<< ""
         if [ $? -ne 0 ]; then
             echo "Project add failure"
             exit 1
@@ -55,11 +52,12 @@ initialize_project_dotfiles() {
             exit 0
         fi
     fi
-
     # git submodule update --remote $SUBMODULE_NAME
 }
 
-source "$PWD/scripts/install_package.sh" gpg
+SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
+
+source "$SCRIPT_DIR/install_package.sh" gpg
 initialize_yadm
 initialize_project_dotfiles
-source "$PWD/scripts/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
+source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"

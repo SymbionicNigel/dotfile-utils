@@ -1,8 +1,7 @@
 
 install_package() {
     # Test if package is installed, return if true
-    which $1 > /dev/null
-    if [ $? == 0 ]; then
+    if [ "$(which "$1" > /dev/null)" == 0 ]; then
         echo "$1 already installed"
         return 0
     fi
@@ -17,7 +16,7 @@ install_package() {
     osInfo[/etc/debian_version]=apt-get
     osInfo[/etc/alpine-release]=apk
     PKG_MANAGER=""
-    for f in ${!osInfo[@]}
+    for f in "${!osInfo[@]}"
     do
         if [[ -f $f ]];then
             echo "Package manager: ${osInfo[$f]}"
@@ -26,9 +25,8 @@ install_package() {
     done
     #################################################
     echo $PKG_MANAGER
-    # Install gpg and check that the install succeeded
-    sudo $PKG_MANAGER install $1 -y
-    if [ ! $? == 0 ]; then
+    # Install package and check that the install succeeded
+    if [ ! "$("sudo $PKG_MANAGER install $1 -y")" == 0 ]; then
         echo "Failed to install $1, please do so manually"
         exit 1
     fi
@@ -36,4 +34,4 @@ install_package() {
 }
 
 
-install_package $1
+install_package "$1"
