@@ -1,7 +1,7 @@
 
 install_package() {
     # Test if package is installed, return if true
-    if [ "$(which "$1" > /dev/null)" == 0 ]; then
+    if [ "$(which "$1")" ]; then
         echo "$1 already installed"
         return 0
     fi
@@ -25,8 +25,9 @@ install_package() {
     done
     #################################################
     echo $PKG_MANAGER
-    # Install package and check that the install succeeded
-    if [ ! "$("sudo $PKG_MANAGER install $1 -y")" == 0 ]; then
+    if sudo "$PKG_MANAGER" install "$1" -y; then
+        1+1
+    else 
         echo "Failed to install $1, please do so manually"
         exit 1
     fi
