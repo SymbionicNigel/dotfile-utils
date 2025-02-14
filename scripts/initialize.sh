@@ -56,7 +56,7 @@ initialize_project_dotfiles() {
 
 SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 
-sudo sh -c "$SCRIPT_DIR/install_package.sh" gpg
+sudo bash "$SCRIPT_DIR/install_package.sh" gpg
 initialize_yadm
 # initialize_project_dotfiles
 # source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
