@@ -10,10 +10,7 @@ REPO_DIR="$(pwd)/.git/modules/.secrets"
 YADM_DIR="$(pwd)/dotfiles/config"
 
 run_yadm() {
-    # GIT_DIR="$(pwd)"
-    # export GIT_DIR
-    # git config -f .git/modules/.secrets/config core.worktree
-    yadm --yadm-data "$DATA_DIR" --yadm-dir "$YADM_DIR" --yadm-repo "$REPO_DIR" status
+    yadm --yadm-data "$DATA_DIR" --yadm-dir "$YADM_DIR" --yadm-repo "$REPO_DIR" init -f -w "$DATA_DIR"
 }
 
 run_yadm

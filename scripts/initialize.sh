@@ -3,14 +3,13 @@
 SUBMODULE_NAME=""
 
 initialize_yadm() {
-    YADM_SYMLINK_DESTINATION=$(readlink -f "/home/$USER/.local/bin/yadm")
-    RELATIVE_YADM_LOCATION=$(readlink -e "$SCRIPT_DIR/../yadm/yadm")
+    YADM_SYMLINK_DESTINATION="/home/$USER/.local/bin/yadm"
+    DOTFILES_PROJECT_LOCATION=$(readlink -e "$SCRIPT_DIR/../")
     
-    git submodule update --init --recursive "$RELATIVE_YADM_LOCATION"
+    git submodule update --init --recursive "$DOTFILES_PROJECT_LOCATION"
     
     if [ -L "$YADM_SYMLINK_DESTINATION" ]; then
         unlink "$YADM_SYMLINK_DESTINATION"
-        # File is already symlinked no action needed
         echo "Unlinked file symlinked at $YADM_SYMLINK_DESTINATION"
     fi
     
@@ -18,7 +17,7 @@ initialize_yadm() {
         rm -rf "$YADM_SYMLINK_DESTINATION"
     fi
 
-    ln -s "$RELATIVE_YADM_LOCATION" "$YADM_SYMLINK_DESTINATION"
+    ln -fs "$DOTFILES_PROJECT_LOCATION/yadm/yadm" "$YADM_SYMLINK_DESTINATION"
     
     if [ -L "$YADM_SYMLINK_DESTINATION" ]; then
         echo "Symlink success"
@@ -27,7 +26,7 @@ initialize_yadm() {
         exit 1
     fi
 
-    git submodule update --remote yadm
+    git -C "$DOTFILES_PROJECT_LOCATION" submodule update --remote yadm
 }
 
 initialize_project_dotfiles() {
@@ -57,7 +56,7 @@ initialize_project_dotfiles() {
 
 SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 
-source "$SCRIPT_DIR/install_package.sh" gpg
+sudo sh -c "$SCRIPT_DIR/install_package.sh" gpg
 initialize_yadm
-initialize_project_dotfiles
-source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
+# initialize_project_dotfiles
+# source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
