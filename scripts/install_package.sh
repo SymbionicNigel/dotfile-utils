@@ -1,3 +1,4 @@
+#!/bin/bash Bash
 
 install_package() {
     # Test if package is installed, return if true

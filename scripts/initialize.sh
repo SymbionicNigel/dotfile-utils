@@ -42,6 +42,7 @@ initialize_project_dotfiles() {
     if [ ! -d "$SUBMODULE_NAME" ] || [ ! -e "$SUBMODULE_NAME/.git" ]; then
         echo "Submodule not found, adding $SUBMODULE_NAME"
         "$SCRIPT_DIR/add_project.sh" <<< ""
+        # TODO: pass the submodule name to the add_project script 
         if [ $? -ne 0 ]; then
             echo "Project add failure"
             exit 1
@@ -57,6 +58,7 @@ initialize_project_dotfiles() {
 SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 
 sudo "$SCRIPT_DIR/install_package.sh" "gpg"
+sudo "$SCRIPT_DIR/install_gh_cli.sh"
 initialize_yadm
 # initialize_project_dotfiles
 # source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
