@@ -89,5 +89,5 @@ SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 sudo "$SCRIPT_DIR/install_package.sh" "gpg"
 sudo "$SCRIPT_DIR/install_gh_cli.sh"
 initialize_yadm
-# initialize_project_dotfiles
+initialize_project_dotfiles
 # source "$SCRIPT_DIR/aliased_yadm.sh" "$SUBMODULE_NAME"

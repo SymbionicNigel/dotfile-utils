@@ -17,8 +17,6 @@ get_submodule_name() {
     read -er -p $'Please provide a name for the git repository\n(default will append "-dotfiles" to the parent repositories name)\n' -i "$SUBMODULE_NAME" SUBMODULE_NAME
 
     read -er -p $'\nPlease provide the name for the directory this new repository will be created within\n' -i "$SUBMODULE_DIR" SUBMODULE_DIR
-
-
 }
 
 make_new_folder() {
