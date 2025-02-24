@@ -22,13 +22,13 @@ get_submodule_name() {
 }
 
 make_new_folder() {
-    rm -rf "$PWD/${SUBMODULE_DIR:?}"
-    echo "$SUBMODULE_DIR directory cleared"
-    mkdir "$SUBMODULE_DIR" 1> /dev/null
-    if  [ $? -ne 0 ] && [ ! -d ".secrets" ]; then
+    rm -rf "$PWD/${1:?}"
+    echo "$1 directory cleared"
+    mkdir "$1" 1> /dev/null
+    if  [ $? -ne 0 ] && [ ! -d "$1" ]; then
         exit 1
     elif [ $? == 0 ]; then
-        echo "$PWD/$SUBMODULE_DIR created"
+        echo "$PWD/$1 created"
     else
         echo "folder already created"
     fi
@@ -44,17 +44,38 @@ initialize_submodule_repo() {
 
     gh repo create "$SUBMODULE_NAME" --private
     REMOTE_URL=$(gh repo view "$SUBMODULE_NAME" --json "sshUrl" --jq ".sshUrl" )
+    # TODO: add error checking to repo view command
 
     echo "# $SUBMODULE_NAME" >> "$SUBMODULE_DIR/README.md"
-    git -C "$SUBMODULE_DIR" init
-    git -C "$SUBMODULE_DIR" add README.md
-    git -C "$SUBMODULE_DIR" commit -m "feat: initial commit"
-    git -C "$SUBMODULE_DIR" branch -M "$BRANCH"
-    git -C "$SUBMODULE_DIR" remote add origin "$REMOTE_URL"
-    git -C "$SUBMODULE_DIR" push -u origin "$BRANCH"
-    # # Remove newly created repository to make room for submodule
+    GIT_CMD="git -C $SUBMODULE_DIR"
+    # Initialize and add readme
+    "$GIT_CMD" init
+    "$GIT_CMD" add README.md
+    # Alt Folder
+    make_new_folder "$SUBMODULE_DIR/alt"
+    "$GIT_CMD" add alt
+    # Bootstrap script
+    touch "$SUBMODULE_DIR/bootstrap"
+    "$GIT_CMD" add bootstrap
+    # Config File
+    touch "$SUBMODULE_DIR/config"
+    "$GIT_CMD" add config
+    # Data Folder
+    make_new_folder "$SUBMODULE_DIR/data"
+    "$GIT_CMD" add data
+    # Encryption config file and archive folder
+    touch "$SUBMODULE_DIR/encrypt/config"
+    make_new_folder "$SUBMODULE_DIR/encrypt/archive"
+    "$GIT_CMD" add encrypt
+    # Commit and Push
+    "$GIT_CMD" commit -m "feat: initial commit"
+    "$GIT_CMD" branch -M "$BRANCH"
+    "$GIT_CMD" remote add origin "$REMOTE_URL"
+    "$GIT_CMD" push -u origin "$BRANCH"
+    # Remove newly created repository to make room for submodule
     rm -rf "$PWD/${SUBMODULE_NAME:?}"
-    git submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
+    yadm submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
+    # TODO: Need to update core.worktree for yadm to work properly
 }
 
 sudo "$SCRIPT_DIR/install_package.sh" "jq"
@@ -67,5 +88,5 @@ if ! gh auth status > /dev/null; then
 fi
 
 get_submodule_name
-make_new_folder
+make_new_folder "$SUBMODULE_DIR"
 initialize_submodule_repo

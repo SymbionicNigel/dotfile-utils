@@ -39,10 +39,39 @@ initialize_project_dotfiles() {
     PARENT_REPOSITORY_REMOTE=`git config --get remote.origin.url`
     SUBMODULE_NAME="$(basename -s ".git" "$PARENT_REPOSITORY_REMOTE")-dotfiles"
     echo "Submodule Parsed: $SUBMODULE_NAME"
+
+    # TODO: update this to handle better parsing of when to replace or just re-initialize submodule
+
+    # if not a dir, not a git repo, or force is true
+        # if force is true
+            # clear old repo
+            # remove github repo
+        # call add project script
+    # if is there treat as initialized and try to re-init through yadm/bootstrap
+
+
+
     if [ ! -d "$SUBMODULE_NAME" ] || [ ! -e "$SUBMODULE_NAME/.git" ]; then
         echo "Submodule not found, adding $SUBMODULE_NAME"
-        "$SCRIPT_DIR/add_project.sh" <<< ""
-        # TODO: pass the submodule name to the add_project script 
+
+        sudo "$SCRIPT_DIR/install_gh_cli.sh"
+
+        if ! gh auth status > /dev/null; then
+            if ! gh auth login; then
+                exit 1
+            fi
+        fi
+
+        "$SCRIPT_DIR/add_project.sh" <<EOF
+# We should not need to handle the inputs to log the user into github as it is done in this script
+# The line below should correlate to the SUBMODULE_NAME
+$SUBMODULE_NAME
+# The line below should correlate to accepting the default for the SUBMODULE_DIR
+
+# The line below should correlate to accepting the default for the BRANCH
+
+EOF
+
         if [ $? -ne 0 ]; then
             echo "Project add failure"
             exit 1
@@ -61,4 +90,4 @@ sudo "$SCRIPT_DIR/install_package.sh" "gpg"
 sudo "$SCRIPT_DIR/install_gh_cli.sh"
 initialize_yadm
 # initialize_project_dotfiles
-# source "$SCRIPT_DIR/bootstrap_dotfiles.sh" "$SUBMODULE_NAME"
+# source "$SCRIPT_DIR/aliased_yadm.sh" "$SUBMODULE_NAME"
