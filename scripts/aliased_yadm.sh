@@ -1,4 +1,4 @@
-#!/bin/bash Bash
+#!/usr/bin/env bash
 
 SUBMODULE_DIR=$1
 shift

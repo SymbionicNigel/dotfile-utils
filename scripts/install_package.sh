@@ -1,4 +1,4 @@
-#!/bin/bash Bash
+#!/usr/bin/env bash
 
 install_package() {
     # Test if package is installed, return if true

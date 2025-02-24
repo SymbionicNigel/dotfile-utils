@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 install_gh_cli() {
     # Package manager parsing pulled from
     # https://unix.stackexchange.com/questions/46081/identifying-the-system-package-manager

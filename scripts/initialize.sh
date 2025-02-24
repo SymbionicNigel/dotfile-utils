@@ -1,4 +1,4 @@
-#!/bin/bash Bash
+#!/usr/bin/env bash
 
 SUBMODULE_NAME=""
 
