@@ -2,7 +2,7 @@
 
 This project is meant to make use of [YADM](https://yadm.io/), [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules), and [gpg](https://gnupg.org/) to create separate repositories (git submodules) which will encypt the sensitive data needed to run other projects. The dotfiles repository is meant to be included as a submodule on any of my projects which need secrets file storage.
 
-![Repository Structure](./media/structure.png)
+![Repository Structure](./media/dotfile-utils-structure-diagram.excalidraw.png)
 
 The same way that GNU/stow will map files into ones `$HOME` directory, YADM will store and apply those files for each project in the same directory structure they are meant to be used in.
 
