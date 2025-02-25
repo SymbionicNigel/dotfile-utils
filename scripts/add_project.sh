@@ -80,6 +80,7 @@ initialize_submodule_repo() {
     make_new_folder "$SUBMODULE_DIR/encrypt/archive"
     git -C "$SUBMODULE_DIR" add encrypt
     # Commit and Push
+    # TODO: Force empty directories to be added to repo
     git -C "$SUBMODULE_DIR" commit -m "feat: initial commit"
     git -C "$SUBMODULE_DIR" branch -M "$BRANCH"
     git -C "$SUBMODULE_DIR" remote add origin "$REMOTE_URL"

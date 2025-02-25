@@ -29,6 +29,8 @@ initialize_yadm() {
     fi
 
     git -C "$DOTFILES_PROJECT_LOCATION" submodule update --remote yadm
+
+    # TODO: ensure that yadm is in $PATH
 }
 
 initialize_project_dotfiles() {
