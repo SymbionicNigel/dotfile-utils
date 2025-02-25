@@ -55,12 +55,30 @@ initialize_submodule_repo() {
     fi
 
     gh repo create "$SUBMODULE_NAME" --private
-    REMOTE_URL=$(gh repo view "$SUBMODULE_NAME" --json "sshUrl" --jq ".sshUrl" )
-    # TODO: add error checking to repo view command
+    if ! REMOTE_URL=$(gh repo view "$SUBMODULE_NAME" --json "sshUrl" --jq ".sshUrl" 2>&1); then
+        echo "Failure to create Github Repo: $SUBMODULE_NAME"
+        echo "Repo View Error: $REMOTE_URL"
+        exit 1
+    fi
+
+    # Initialize, create .gitattributes,and add readme
+    git -C "$SUBMODULE_DIR" init
+    cat << EOF > "$SUBMODULE_DIR/.gitattributes"
+# Force directories to be tracked even when empty
+alt/** -delete
+data/** -delete
+encrypt/** -delete
+encrypt/archive/** -delete
+
+# Ensure directories are created on checkout
+alt/ export-ignore
+data/ export-ignore
+encrypt/ export-ignore
+encrypt/archive/ export-ignore
+EOF
+    git -C "$SUBMODULE_DIR" add .gitattributes
 
     echo "# $SUBMODULE_NAME" >> "$SUBMODULE_DIR/README.md"
-    # Initialize and add readme
-    git -C "$SUBMODULE_DIR" init
     git -C "$SUBMODULE_DIR" add README.md
     # Alt Folder
     make_new_folder "$SUBMODULE_DIR/alt"
@@ -80,7 +98,6 @@ initialize_submodule_repo() {
     make_new_folder "$SUBMODULE_DIR/encrypt/archive"
     git -C "$SUBMODULE_DIR" add encrypt
     # Commit and Push
-    # TODO: Force empty directories to be added to repo
     git -C "$SUBMODULE_DIR" commit -m "feat: initial commit"
     git -C "$SUBMODULE_DIR" branch -M "$BRANCH"
     git -C "$SUBMODULE_DIR" remote add origin "$REMOTE_URL"
@@ -88,7 +105,7 @@ initialize_submodule_repo() {
     # Remove newly created repository to make room for submodule
     rm -rf "$PWD/${SUBMODULE_DIR:?}"
     "$SCRIPT_DIR/aliased_yadm.sh" submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
-    "$SCRIPT_DIR/aliased_yadm.sh" init -f -w "$PWD"
+    "$SCRIPT_DIR/aliased_yadm.sh" init -w "$PWD"
 }
 
 sudo "$SCRIPT_DIR/install_package.sh" "jq"
