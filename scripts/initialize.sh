@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+printf "\n-----Running %s-----\n" "$(basename "$0")"
+
 SUBMODULE_NAME=""
 
 initialize_yadm() {
@@ -38,6 +40,8 @@ initialize_project_dotfiles() {
     # Read repository name from parent directories remote url
     PARENT_REPOSITORY_REMOTE=`git config --get remote.origin.url`
     SUBMODULE_NAME="$(basename -s ".git" "$PARENT_REPOSITORY_REMOTE")-dotfiles"
+    SUBMODULE_DIR=".secrets"
+    BRANCH=$(git config --get init.defaultBranch || echo "master") 
     echo "Submodule Parsed: $SUBMODULE_NAME"
 
     # TODO: update this to handle better parsing of when to replace or just re-initialize submodule
@@ -51,7 +55,7 @@ initialize_project_dotfiles() {
 
 
 
-    if [ ! -d "$SUBMODULE_NAME" ] || [ ! -e "$SUBMODULE_NAME/.git" ]; then
+    if [ ! -d "$SUBMODULE_DIR" ] || [ ! -e "$SUBMODULE_DIR/.git" ]; then
         echo "Submodule not found, adding $SUBMODULE_NAME"
 
         sudo "$SCRIPT_DIR/install_gh_cli.sh"
@@ -61,15 +65,8 @@ initialize_project_dotfiles() {
                 exit 1
             fi
         fi
-
-        "$SCRIPT_DIR/add_project.sh" <<EOF
-# We should not need to handle the inputs to log the user into github as it is done in this script
-# The line below should correlate to the SUBMODULE_NAME
-$SUBMODULE_NAME
-# The line below should correlate to accepting the default for the SUBMODULE_DIR
-
-# The line below should correlate to accepting the default for the BRANCH
-
+        "$SCRIPT_DIR/add_project.sh" "$SUBMODULE_NAME" "$SUBMODULE_DIR" <<EOF
+$BRANCH
 EOF
 
         if [ $? -ne 0 ]; then

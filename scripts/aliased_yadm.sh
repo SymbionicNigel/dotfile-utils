@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+printf "\n-----Running %s-----\n" "$(basename "$0")"
+
 SUBMODULE_DIR=$1
 shift
 

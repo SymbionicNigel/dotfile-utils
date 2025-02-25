@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+printf "\n-----Running %s-----\n" "$(basename "$0")"
+
 install_package() {
     # Test if package is installed, return if true
     if [ "$(which "$1")" ]; then
