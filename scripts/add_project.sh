@@ -61,27 +61,20 @@ initialize_submodule_repo() {
         exit 1
     fi
 
-    # Initialize, create .gitattributes,and add readme
+    # Initialize and add readme
     git -C "$SUBMODULE_DIR" init
-    cat << EOF > "$SUBMODULE_DIR/.gitattributes"
-# Force directories to be tracked even when empty
-alt/** -delete
-data/** -delete
-encrypt/** -delete
-encrypt/archive/** -delete
 
-# Ensure directories are created on checkout
-alt/ export-ignore
-data/ export-ignore
-encrypt/ export-ignore
-encrypt/archive/ export-ignore
+    cat << EOF > "$SUBMODULE_DIR/.gitignore"
+encrypt/archive/*
+!encrypt/archive/.gitkeep
 EOF
-    git -C "$SUBMODULE_DIR" add .gitattributes
+    git -C "$SUBMODULE_DIR" add .gitignore
 
     echo "# $SUBMODULE_NAME" >> "$SUBMODULE_DIR/README.md"
     git -C "$SUBMODULE_DIR" add README.md
     # Alt Folder
     make_new_folder "$SUBMODULE_DIR/alt"
+    touch "$SUBMODULE_DIR/alt/.gitkeep"
     git -C "$SUBMODULE_DIR" add alt
     # Bootstrap script
     touch "$SUBMODULE_DIR/bootstrap"
@@ -91,11 +84,13 @@ EOF
     git -C "$SUBMODULE_DIR" add config
     # Data Folder
     make_new_folder "$SUBMODULE_DIR/data"
+    touch "$SUBMODULE_DIR/data/.gitkeep"
     git -C "$SUBMODULE_DIR" add data
     # Encryption config file and archive folder
     make_new_folder "$SUBMODULE_DIR/encrypt"
     touch "$SUBMODULE_DIR/encrypt/config"
     make_new_folder "$SUBMODULE_DIR/encrypt/archive"
+    touch "$SUBMODULE_DIR/encrypt/archive/.gitkeep"
     git -C "$SUBMODULE_DIR" add encrypt
     # Commit and Push
     git -C "$SUBMODULE_DIR" commit -m "feat: initial commit"
@@ -104,7 +99,8 @@ EOF
     git -C "$SUBMODULE_DIR" push -u origin "$BRANCH"
     # Remove newly created repository to make room for submodule
     rm -rf "$PWD/${SUBMODULE_DIR:?}"
-    "$SCRIPT_DIR/aliased_yadm.sh" submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
+    # TODO: ensure that this new line works, see what can be done to add the submodule through yadm
+    git submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
     "$SCRIPT_DIR/aliased_yadm.sh" init -w "$PWD"
 }
 
