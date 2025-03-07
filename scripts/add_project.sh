@@ -101,7 +101,9 @@ EOF
     rm -rf "$PWD/${SUBMODULE_DIR:?}"
     # TODO: ensure that this new line works, see what can be done to add the submodule through yadm
     git submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
+    git config -f ".git/modules/$SUBMODULE_DIR/config" core.worktree "$PWD"
     "$SCRIPT_DIR/aliased_yadm.sh" init -w "$PWD"
+    "$SCRIPT_DIR/aliased_yadm.sh" status
 }
 
 sudo "$SCRIPT_DIR/install_package.sh" "jq"
