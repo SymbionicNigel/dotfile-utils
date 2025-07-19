@@ -2,6 +2,10 @@
 
 printf "\n-----Running %s-----\n" "$(basename "$0")"
 
+configure_gh_cli() {
+    gh config set git_protocol ssh
+}
+
 install_gh_cli() {
     # Package manager parsing pulled from
     # https://unix.stackexchange.com/questions/46081/identifying-the-system-package-manager
@@ -32,6 +36,7 @@ install_gh_cli() {
             *)
                 ;;
         esac
+        configure_gh_cli
         echo "GH CLI already installed"
         exit 0
     fi
@@ -58,6 +63,7 @@ install_gh_cli() {
             exit 1
             ;;
     esac
+    configure_gh_cli
     exit 0
 }
 install_gh_cli
