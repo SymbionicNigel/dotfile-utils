@@ -9,6 +9,27 @@
 #
 set -euf
 
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [-h|--help]
+
+Ensures a personal fork and release of chezmoi exists, then installs a pinned version.
+This script is designed to be idempotent and create a resilient, self-contained
+bootstrap process. It does not take any arguments other than the help flag.
+
+It performs the following actions:
+1. Checks for a personal fork of twpayne/chezmoi and creates one if needed.
+2. Checks for a specific release on the fork and mirrors it from the original if needed.
+3. Downloads the correct chezmoi binary for the current OS/architecture from the fork.
+4. Installs the binary to ~/.local/bin and updates the shell profile if necessary.
+
+Requirements:
+  - 'gh' (GitHub CLI) must be installed and authenticated.
+  - The authenticated user must have 'repo' scope to create forks and releases.
+EOF
+    exit 0
+}
+
 # --- Configuration ---
 # Pin the exact version of chezmoi you want to use.
 # Find versions at: https://github.com/twpayne/chezmoi/releases
@@ -140,6 +161,10 @@ ensure_release_mirrored() {
 }
 
 # --- Pre-flight Checks ---
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   echo "Error: GitHub CLI ('gh') is not installed or not in your PATH." >&2
   echo "Please run the bootstrap script to install dependencies first." >&2
