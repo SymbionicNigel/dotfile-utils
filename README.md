@@ -1,7 +1,7 @@
 # Dotfile Utilities
 
 This project provides a robust, self-contained utility for managing dotfiles and
-othersecrets across multiple machines. It uses [chezmoi](https://chezmoi.io/) as
+other secrets across multiple machines. It uses [chezmoi](https://chezmoi.io/) as
 its core engine and is designed to be included as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 in other projects.
 
@@ -13,7 +13,7 @@ of `chezmoi` to protect against upstream changes or outages.
 ## How It Works
 
 The main `bootstrap.sh` script orchestrates the entire setup process. It leverages
-the GitHub CLI (`gh`) to automatically:
+the GitHub CLI (`gh`) to automatically to manage remote git assets:
 
 1. **Ensure a Personal Fork**: It checks for a personal fork of the `twpayne/chezmoi`
 repository on your GitHub account and creates one if it doesn't exist.
@@ -29,18 +29,21 @@ repository remaining available long-term.
 ## Prerequisites & Usage Notes
 
 - `git` must be installed.
-- The GitHub CLI (`gh`) must be installed and authenticated. The bootstrap script
-will attempt to install `gh` if it's missing, but you must authenticate it yourself
-by running:
+- SSH is the expected and configured method of authentication. A ssh key must be
+generated and configured before using this tool.
+- The GitHub CLI (`gh`) must be installed and authenticated.
+    - The bootstrap script will attempt to install `gh` if it's missing, but you
+    must authenticate it yourself by running:
 
   ```bash
   gh auth login
   ```
 
-  The token requires `repo` scope to create forks and releases.
+    - The token requires `repo`, `read:org`, and `admin:public_key` scopes to
+    create forks, repos, commits, and releases.
 - `sudo` privileges may be required for the script to install dependencies like
 `gh`, `gpg`, and `jq`.
-- The bootstrap scripts are meant to be run from the root directory of the parent
+- These scripts are meant to be run from the root directory of the parent
 project (the one that includes this repository as a submodule).
 
 ## Basic Usage
@@ -95,9 +98,9 @@ chezmoi --config ./.chezmoi/.chezmoi.toml add <filename>
 
 ### Editing a file
 
-Once a file is added, my recommended way of updating the contents of the file
-is to just make the updates with whatever editor you prefer and then merging them
-into the chezmoi repo with the command below.
+Once a file is added, my preferred way of updating the contents of any file
+is use whatever editor you prefer and then merge them into the chezmoi repo with
+the command below.
 
 ```bash
 # Retain Edits to a File
@@ -179,6 +182,51 @@ location. The encrypted version remains safely in your git repository.
 {{   end }}
 {{ end }}
 ```
+
+## Hardcoded Configurations
+
+While this utility aims to be flexible, certain configurations are hardcoded
+directly into the scripts for stability and simplicity. If you need to customize
+these, you will need to edit the scripts directly.
+
+### `scripts/add_project.sh`
+
+- **Allowed Modes**: The list of operational modes (`local`, `testing`,
+    `production`) that can be assigned to a new project is defined in the
+    `ALLOWED_MODES` array.
+
+    ```bash
+    ALLOWED_MODES=("local" "testing" "production")
+    ```
+
+### `scripts/install_chezmoi.sh`
+
+- **Chezmoi Version**: The specific version of `chezmoi` to install is pinned
+    in the `CHEZMOI_VERSION` variable. This ensures a consistent and repeatable
+    setup.
+
+    ```bash
+    CHEZMOI_VERSION="v2.63.0"
+    ```
+
+- **Installation Directory**: The `chezmoi` binary is installed into `~/.local/bin`
+    by default. This is defined by the `INSTALL_DIR` variable.
+
+    ```bash
+    INSTALL_DIR="${HOME}/.local/bin"
+    ```
+
+- **Mirrored Platforms**: To support cross-platform usage, the script mirrors
+    `chezmoi` release artifacts for a predefined set of operating systems and
+    architectures. This list is defined in the `PLATFORMS_TO_MIRROR` array.
+
+    ```bash
+    PLATFORMS_TO_MIRROR=(
+      "linux_amd64"
+      "linux_arm64"
+      "darwin_arm64"
+    )
+    ```
 
 ## Design Choices & Historical Context
 

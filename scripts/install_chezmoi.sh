@@ -33,7 +33,7 @@ EOF
 # --- Configuration ---
 # Pin the exact version of chezmoi you want to use.
 # Find versions at: https://github.com/twpayne/chezmoi/releases
-CHEZMOI_VERSION="v2.48.0" # "v2.63.0" # Must be full version identifier!!
+CHEZMOI_VERSION="v2.63.0" # Must be full version identifier!!
 ORIGINAL_REPO="twpayne/chezmoi"
 INSTALL_DIR="${HOME}/.local/bin"
 
