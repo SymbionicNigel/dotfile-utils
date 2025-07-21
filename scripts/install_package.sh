@@ -2,6 +2,21 @@
 
 printf "\n-----Running %s-----\n" "$(basename "$0")"
 
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [options] <package_name>
+
+Installs a single package using the system's package manager.
+
+Arguments:
+  <package_name>      The name of the package to install.
+
+Options:
+  -h, --help          Display this help message and exit.
+EOF
+    exit 0
+}
+
 install_package() {
     # Test if package is installed, return if true
     if [ "$(which "$1")" ]; then
@@ -38,4 +53,11 @@ install_package() {
 }
 
 
-install_package "$1"
+# Argument parsing
+if [[ $# -eq 0 || "$1" == "-h" || "$1" == "--help" ]]; then
+    usage
+fi
+
+PACKAGE_NAME="$1"
+
+install_package "$PACKAGE_NAME"
