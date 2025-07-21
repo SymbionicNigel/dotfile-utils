@@ -39,8 +39,8 @@ generated and configured before using this tool.
   gh auth login
   ```
 
-    - The token requires `repo`, `read:org`, and `admin:public_key` scopes to
-    create forks, repos, commits, and releases.
+    - The token requires `repo`, `read:org`, `delete_repo`, and `admin:public_key`
+    scopes to create, update, and delete forks, repos, commits, and releases.
 - `sudo` privileges may be required for the script to install dependencies like
 `gh`, `gpg`, and `jq`.
 - These scripts are meant to be run from the root directory of the parent
@@ -69,19 +69,19 @@ project (the one that includes this repository as a submodule).
     manage files within this project.
     - If this is an existing project, the script will initialize the secrets submodule
     and automatically apply the configuration using
-    `chezmoi --config ./.chezmoi/.chezmoi.toml apply`.
+    `chezmoi --config ./.chezmoi.toml apply`.
 
 3. **Manage Your Dotfiles**:
     After the bootstrap is complete, your project is ready to go. You can use
-    standard `chezmoi --config ./.chezmoi/.chezmoi.toml` commands to manage your
+    standard `chezmoi --config ./.chezmoi.toml` commands to manage your
     project's configuration files.
 
     ```bash
     # Add a new file to be managed
-    chezmoi --config ./.chezmoi/.chezmoi.toml add docker-compose.yml
+    chezmoi --config ./.chezmoi.toml add docker-compose.yml
 
     # Apply any pending changes
-    chezmoi --config ./.chezmoi/.chezmoi.toml apply
+    chezmoi --config ./.chezmoi.toml apply
     ```
 
 ## Managing Dotfiles
@@ -93,7 +93,7 @@ will copy the file into its source directory, ready to be committed.
 
 ```bash
 # Add a configuration file
-chezmoi --config ./.chezmoi/.chezmoi.toml add <filename>
+chezmoi --config ./.chezmoi.toml add <filename>
 ```
 
 ### Editing a file
@@ -104,23 +104,23 @@ the command below.
 
 ```bash
 # Retain Edits to a File
-chezmoi --config ./.chezmoi/.chezmoi.toml merge <filename>
-chezmoi --config ./.chezmoi/.chezmoi.toml git --  add <filename>
-chezmoi --config ./.chezmoi/.chezmoi.toml git --  commit -m "<message>"
-chezmoi --config ./.chezmoi/.chezmoi.toml git --  push
+chezmoi --config ./.chezmoi.toml merge <filename>
+chezmoi --config ./.chezmoi.toml git --  add <filename>
+chezmoi --config ./.chezmoi.toml git --  commit -m "<message>"
+chezmoi --config ./.chezmoi.toml git --  push
 ```
 
 ### List managed/unmanaged file paths
 
 ```bash
-chezmoi --config ./.chezmoi/.chezmoi.toml <managed|unmanaged>
+chezmoi --config ./.chezmoi.toml <managed|unmanaged>
 ```
 
 ### Ensure files are removed from other machines upon apply
 
 ```bash
 # Add a path pattern to your .chezmoiremove file
-chezmoi --config ./.chezmoi/.chezmoi.toml cd
+chezmoi --config ./.chezmoi.toml cd
 printf "\n%s" "<path-pattern>" >> ./.chezmoiremove
 # Commit changes, push to other device, run `chezmoi apply`
 # Can use ` --dry-run --verbose` flags to test this removal
@@ -167,7 +167,7 @@ or private keys.
 To encrypt a file, add it with the `--encrypt` flag.
 
 ```bash
-chezmoi --config ./.chezmoi/.chezmoi.toml add --encrypt ~/.private-key
+chezmoi --config ./.chezmoi.toml add --encrypt ~/.private-key
 ```
 
 When you run `chezmoi apply`, the file will be decrypted and placed in the correct

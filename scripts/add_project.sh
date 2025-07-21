@@ -7,7 +7,6 @@ SUBMODULE_DIR=".secrets" # Default value, can be overridden by --dir flag
 MODE=""
 ALLOWED_MODES=("local" "testing" "production")
 PARENT_REPOSITORY_REMOTE=$(git config --get remote.origin.url)
-SCRIPT_DIR="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 
 # Helper function to check if a value is in an array
 contains_element() {
@@ -119,40 +118,90 @@ initialize_submodule_repo() {
     # Initialize git repo, create and commit initial files.
     git init -b "$BRANCH"
 
+    local mode_line
+    if [ -n "$MODE" ]; then
+        mode_line="mode = \"${MODE}\" # Set from bootstrap argument"
+    else
+        local choices_list
+        choices_list=$(printf "\"%s\" " "${ALLOWED_MODES[@]}")
+        choices_list="${choices_list% }" # Remove trailing space
+        local default_choice="${ALLOWED_MODES[0]}"
+
+        # The promptChoiceOnce function stores its result in the state file.
+        # Wrap the template in quotes to make it a valid TOML string. chezmoi evaluates templates in data values.
+        # This will prompt the user to select a mode on the first 'chezmoi apply' if one wasn't provided via --mode.
+        mode_line="mode={{ promptChoiceOnce . \"project.mode\" \"Select operational mode\" (list ${choices_list}) \"${default_choice}\" | quote }}"
+    fi
+
+    make_new_folder "dot_chezmoi"
+    cat << EOF > ".chezmoi.toml.tmpl"
+# .chezmoi.toml
+# Local project configuration for chezmoi.
+
+# The source directory is the secrets submodule.
+sourceDir = "./${SUBMODULE_DIR}"
+
+# The destination directory is the project root.
+destDir = "."
+
+[data]
+# This value determines the operational mode for this project's configuration.
+# It will prompt on the first 'chezmoi apply' if a mode was not set during setup.
+${mode_line}
+EOF
+    echo "--> .chezmoi.toml.tmpl created."
+    git add ".chezmoi.toml.tmpl"
+
     # Create a .chezmoiignore file to prevent certain files from being managed by chezmoi.
     # This prevents the submodule's README from overwriting the parent repo's README.
     echo "README.md" > ".chezmoiignore"
     git add ".chezmoiignore"
 
-    # Create a dot_env file for chezmoi. It will be populated if a mode is set.
-    if [ -n "$MODE" ]; then
-        echo "MODE=${MODE}" > "dot_env"
-        echo "MODE=${MODE}" > "dot_env_${MODE}"
-        git add "dot_env_${MODE}"
-    else
-        touch "dot_env"
-    fi
-    git add dot_env
+    # Create a .env template.
+    echo "--> Creating .env template to trigger mode prompt..."
+    echo 'MODE={{ .mode }}' > "dot_env.tmpl"
+    git add "dot_env.tmpl"
 
-    # Create a .gitignore template to be managed by chezmoi.
-    # This will automatically populate the parent .gitignore with all files
-    # managed by this chezmoi instance, plus the state file.
-    # We use a template so that as new files are added with 'chezmoi add',
-    # they are automatically added to the .gitignore on the next 'chezmoi apply'.
-    cat << 'EOF' > "dot_gitignore.tmpl" # This creates .gitignore in the project root
+    # Create a .gitignore template that won't overwrite an existing project .gitignore.
+    echo "--> Creating .gitignore template..."
+    local project_root_gitignore="../.gitignore"
+
+    # This template will generate the .gitignore in the project root.
+    cat << 'EOF' > "dot_gitignore.tmpl"
 # This file is managed by chezmoi from dot_gitignore.tmpl
 # in the secrets repo. Do not edit it directly.
+EOF
+
+    # If a .gitignore exists in the project root, copy its contents into the template.
+    if [ -f "$project_root_gitignore" ]; then
+        echo "--> Found existing .gitignore. Preserving its content in the template."
+        {
+            echo
+            echo "# --- Start of content from original .gitignore ---"
+            cat "$project_root_gitignore"
+            echo
+            echo "# --- End of content from original .gitignore ---"
+            echo
+        } >> "dot_gitignore.tmpl"
+    fi
+
+    # Append the dynamic part that ignores chezmoi-managed files.
+    # Using .chezmoi.destDir ensures the path to the config is always correct.
+    cat << 'EOF' >> "dot_gitignore.tmpl"
+# --- Start of chezmoi-managed entries ---
 
 # Ignore the chezmoi state file.
-.chezmoi/chezmoistate.boltdb
+chezmoistate.boltdb
 
 # Ignore all other files managed by this chezmoi instance.
-{{ $managed := output "chezmoi" "--config" "./.chezmoi/.chezmoi.toml" "managed" | trim -}}
+{{ $configPath := joinPath (.chezmoi.destDir | toString) ".chezmoi" ".chezmoi.toml" -}}
+{{ $managed := output "chezmoi" "--config" $configPath "managed" | trim -}}
 {{- range $line := split "\n" $managed -}}
 {{-   if and $line (ne $line ".gitignore") -}}
 {{ $line }}
 {{-   end -}}
 {{- end }}
+# --- End of chezmoi-managed entries ---
 EOF
     git add "dot_gitignore.tmpl"
 
@@ -171,41 +220,6 @@ EOF
     rm -rf "$SUBMODULE_DIR"
     git submodule add "$REMOTE_URL" "$SUBMODULE_DIR"
     echo "--> Submodule '$SUBMODULE_DIR' added."
-
-    echo "--> Generating chezmoi config in .chezmoi/ ..."
-    mkdir -p ".chezmoi"
-
-    local mode_line
-    if [ -n "$MODE" ]; then
-        mode_line="mode = \"${MODE}\" # Set from bootstrap argument"
-    else
-        local choices_list
-        choices_list=$(printf "\"%s\" " "${ALLOWED_MODES[@]}")
-        choices_list="${choices_list% }" # Remove trailing space
-        local default_choice="${ALLOWED_MODES[0]}"
-
-        # Wrap the template in quotes to make it a valid TOML string. chezmoi evaluates templates in data values.
-        # This will prompt the user to select a mode on the first 'chezmoi apply' if one wasn't provided via --mode.
-        # Use single quotes for the TOML value to avoid issues with nested double quotes inside the template function.
-        mode_line="mode = '{{ promptMultichoiceOnce \"chezmoi.data.mode\" \"Select operational mode\" (list ${choices_list}) \"${default_choice}\" }}'"
-    fi
-
-    cat << EOF > ".chezmoi/.chezmoi.toml"
-# .chezmoi/.chezmoi.toml
-# Local project configuration for chezmoi.
-
-# The source directory is the secrets submodule.
-sourceDir = "../${SUBMODULE_DIR}"
-
-# The destination directory is the project root.
-destDir = ".."
-
-[data]
-# This value determines the operational mode for this project's configuration.
-# It will prompt on the first 'chezmoi apply' if a mode was not set during setup.
-${mode_line}
-EOF
-    echo "--> .chezmoi/.chezmoi.toml created."
 }
 
 print_success_message() {
@@ -213,22 +227,22 @@ print_success_message() {
 
 ✅ Project setup complete!
 
-The secrets submodule has been created in '${SUBMODULE_DIR}' and '.chezmoi/.chezmoi.toml' is configured.
+The secrets submodule has been created in '${SUBMODULE_DIR}' and '.chezmoi.toml' is configured.
 
 A 'dot_gitignore.tmpl' file has been created in your new secrets repository.
 This template will automatically generate a '.gitignore' file in your project root
 that lists all files managed by chezmoi.
 
-Run 'chezmoi --config ./.chezmoi/.chezmoi.toml apply' to generate the initial '.gitignore'.
+Run 'chezmoi --config ./.chezmoi.toml apply' to generate the initial '.gitignore'.
 Each time you run 'apply', the .gitignore will be updated with any newly added files.
 
 To manage this project's dotfiles, you must use the local configuration file for all commands.
 Example:
-  chezmoi --config ./.chezmoi/.chezmoi.toml apply
-  chezmoi --config ./.chezmoi/.chezmoi.toml add ~/.config/some/app/config.file
+  chezmoi --config ./.chezmoi.toml apply
+  chezmoi --config ./.chezmoi.toml add ~/.config/some/app/config.file
 
 For convenience, consider creating a temporary shell alias for your current session:
-  alias czm='chezmoi --config ./.chezmoi/.chezmoi.toml'
+  alias czm='chezmoi --config ./.chezmoi.toml'
   # Now you can run: czm apply
 EOF
 }
@@ -275,15 +289,6 @@ while [[ $# -gt 0 ]]; do
             exit 1
     esac
 done
-
-sudo "$SCRIPT_DIR/install_package.sh" "jq"
-sudo "$SCRIPT_DIR/install_gh_cli.sh"
-
-if ! gh auth status > /dev/null; then
-    if ! gh auth login; then
-        exit 1
-    fi
-fi
 
 prompt_for_configuration
 make_new_folder "$SUBMODULE_DIR"

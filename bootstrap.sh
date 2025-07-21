@@ -45,11 +45,11 @@ echo "Installing/updating chezmoi..."
 # 4. Check for and set up the secrets repository submodule
 echo "--- Checking for secrets repository and config file ---"
 SECRETS_SUBMODULE_DIR=""
-if [ -f ".chezmoi/.chezmoi.toml" ]; then
+if [ -f ".chezmoi.toml" ]; then
     # A local config file exists. Force chezmoi to use it to prevent it from
     # falling back to a global config (e.g., in ~/.config/chezmoi).
     # If source-path fails for any reason, the variable will be empty.
-    SECRETS_SUBMODULE_DIR=$(chezmoi --config ./.chezmoi/.chezmoi.toml source-path 2>/dev/null || echo "")
+    SECRETS_SUBMODULE_DIR=$(chezmoi --config ./.chezmoi.toml source-path 2>/dev/null || echo "")
 fi
 SHOULD_APPLY=false
 
@@ -63,7 +63,7 @@ if [ -n "$SECRETS_SUBMODULE_DIR" ] && [ -d "$SECRETS_SUBMODULE_DIR" ] && [ -d "$
     SHOULD_APPLY=true
 else
     if [ -n "$SECRETS_SUBMODULE_DIR" ]; then
-        echo "Warning: .chezmoi/.chezmoi.toml found, but secrets repository at './${SECRETS_SUBMODULE_DIR}' is missing or not a valid submodule."
+        echo "Warning: .chezmoi.toml found, but secrets repository at './${SECRETS_SUBMODULE_DIR}' is missing or not a valid submodule."
     fi
 
     read -p "No secrets repository configured or found. Would you like to create/add one now? [y/N]: " -n 1 -r
@@ -96,7 +96,7 @@ fi
 
 if [ "$SHOULD_APPLY" = true ]; then
     echo "--- Applying chezmoi configuration ---"
-    chezmoi --config "./.chezmoi/.chezmoi.toml" apply
+    chezmoi -S "./.secrets" -D "./" init -a --prompt
 fi
 
 echo "--- Bootstrap complete ---"
