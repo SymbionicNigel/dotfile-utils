@@ -157,6 +157,11 @@ EOF
     echo "README.md" > ".chezmoiignore"
     git add ".chezmoiignore"
 
+    CHEZMOI_VERSION=$(chezmoi --version)
+    # Create a .chezmoiversion file to limit the minimium version of chezmoi that can be used on this repo
+    echo "${CHEZMOI_VERSION#v}" > ".chezmoiversion"
+    git add ".chezmoiversion"
+
     # Create a .env template.
     echo "--> Creating .env template to trigger mode prompt..."
     echo 'MODE={{ .mode }}' > "dot_env.tmpl"
