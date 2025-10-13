@@ -4,7 +4,9 @@ set -euf -o pipefail
 
 # --- Argument Parsing ---
 MODE=""
-# A simple loop to grab --mode
+ENABLE_ENCRYPTION=""
+GPG_KEY_ID=""
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode)
@@ -13,6 +15,20 @@ while [[ $# -gt 0 ]]; do
         shift 2
       else
         echo "Error: --mode requires a value." >&2
+        exit 1
+      fi
+      ;;
+    --encrypt)
+      ENABLE_ENCRYPTION="yes"
+      shift
+      ;;
+    --gpg-key)
+      if [[ -n "$2" && ! "$2" =~ ^-- ]]; then
+        GPG_KEY_ID="$2"
+        ENABLE_ENCRYPTION="yes"
+        shift 2
+      else
+        echo "Error: --gpg-key requires a value." >&2
         exit 1
       fi
       ;;
@@ -86,6 +102,12 @@ else
         add_project_args=("--dir" "$submodule_dir")
         if [ -n "$MODE" ]; then
             add_project_args+=("--mode" "$MODE")
+        fi
+        if [ "$ENABLE_ENCRYPTION" = "yes" ]; then
+            add_project_args+=("--encrypt")
+            if [ -n "$GPG_KEY_ID" ]; then
+                add_project_args+=("--gpg-key" "$GPG_KEY_ID")
+            fi
         fi
         "$SCRIPT_DIR/scripts/add_project.sh" "${add_project_args[@]}"
         SHOULD_APPLY=true
