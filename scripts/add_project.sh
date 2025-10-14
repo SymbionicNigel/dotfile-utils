@@ -7,6 +7,8 @@ SUBMODULE_DIR=".secrets" # Default value, can be overridden by --dir flag
 MODE=""
 ALLOWED_MODES=("local" "testing" "production")
 PARENT_REPOSITORY_REMOTE=$(git config --get remote.origin.url)
+ENABLE_ENCRYPTION=""
+GPG_KEY_ID=""
 
 # Helper function to check if a value is in an array
 contains_element() {
@@ -28,6 +30,8 @@ Options:
   --name <name>         The name for the new secrets git repository.
                         If not provided, you will be prompted.
   --dir <dir>           The local directory name for the submodule. Defaults to ".secrets".
+  --encrypt             Enable GPG encryption for chezmoi-managed files.
+  --gpg-key <key_id>    Use an existing GPG key ID. If not provided with --encrypt, a new key will be generated.
   -h, --help            Display this help message and exit.
 EOF
     exit 0
@@ -76,6 +80,62 @@ prompt_for_configuration() {
         exit 1
     fi
     echo "--> Repository name is available."
+
+    # Prompt for encryption setup if not provided via arguments
+    if [ -z "$ENABLE_ENCRYPTION" ]; then
+        echo ""
+        read -r -p "Enable GPG encryption for chezmoi-managed files? (y/N): " encrypt_response
+        if [[ "$encrypt_response" =~ ^[Yy]$ ]]; then
+            ENABLE_ENCRYPTION="yes"
+        else
+            ENABLE_ENCRYPTION="no"
+        fi
+    fi
+
+    # If encryption is enabled, handle GPG key setup
+    if [ "$ENABLE_ENCRYPTION" = "yes" ]; then
+        if [ -z "$GPG_KEY_ID" ]; then
+            echo ""
+            echo "GPG encryption is enabled. You can use an existing GPG key or generate a new one."
+            read -r -p "Use an existing GPG key? (y/N): " use_existing_key
+
+            if [[ "$use_existing_key" =~ ^[Yy]$ ]]; then
+                # List available GPG keys
+                echo ""
+                echo "Available GPG keys:"
+                gpg --list-secret-keys --keyid-format LONG
+                echo ""
+                read -r -p "Enter the GPG key ID to use: " GPG_KEY_ID
+
+                if [ -z "$GPG_KEY_ID" ]; then
+                    echo "Error: GPG key ID cannot be empty." >&2
+                    exit 1
+                fi
+
+                # Verify the key exists
+                if ! gpg --list-secret-keys "$GPG_KEY_ID" >/dev/null 2>&1; then
+                    echo "Error: GPG key '$GPG_KEY_ID' not found." >&2
+                    exit 1
+                fi
+            else
+                echo ""
+                echo "A new GPG key will be generated with the following settings:"
+                echo "  - Key type: RSA"
+                echo "  - Key length: 4096 bits"
+                echo "  - Expiration: No expiration"
+                echo "  - Name format: <project-name>-chezmoi"
+                echo ""
+                # GPG key will be generated in setup_gpg_encryption function
+            fi
+        # Verify the provided key exists
+        elif ! gpg --list-secret-keys "$GPG_KEY_ID" >/dev/null 2>&1; then
+            echo "Error: Provided GPG key '$GPG_KEY_ID' not found." >&2
+            exit 1
+        fi
+
+        # Setup GPG encryption now that we have all the configuration
+        setup_gpg_encryption
+    fi
 }
 
 make_new_folder() {
@@ -89,6 +149,97 @@ make_new_folder() {
         exit 1
     fi
     echo "--> Directory '$dir_name' created."
+}
+
+setup_gpg_encryption() {
+    # Generate a new GPG key if one wasn't provided
+    if [ -z "$GPG_KEY_ID" ]; then
+        local key_name="${SUBMODULE_NAME}-chezmoi"
+        local key_email="${SUBMODULE_NAME}-chezmoi@localhost"
+
+        # Check if a key with this email already exists
+        local existing_key_count
+        existing_key_count=$(gpg --list-secret-keys --with-colons "$key_email" 2>/dev/null | grep -c "^sec:")
+
+        if [ "$existing_key_count" -gt 0 ]; then
+            echo "A GPG key with email '$key_email' already exists."
+
+            if [ "$existing_key_count" -eq 1 ]; then
+                # Exactly one key found - offer to reuse it
+                local existing_key_id
+                existing_key_id=$(gpg --list-secret-keys --with-colons "$key_email" | awk -F: '/^sec:/ {print $5; exit}')
+
+                echo "Found existing key: $existing_key_id"
+                read -r -p "Reuse this key for chezmoi encryption? (Y/n): " reuse_key
+
+                if [[ ! "$reuse_key" =~ ^[Nn]$ ]]; then
+                    GPG_KEY_ID="$existing_key_id"
+                    echo "--> Using existing GPG key: $GPG_KEY_ID"
+                    return 0
+                fi
+            else
+                # Multiple keys found
+                echo "Multiple keys found with this email. Please choose a unique email or select an existing key."
+            fi
+
+            # User chose not to reuse or multiple keys exist - prompt for unique email
+            echo ""
+            read -er -p "Enter a unique email for the new GPG key: " -i "${SUBMODULE_NAME}-chezmoi-$(date +%s)@localhost" key_email
+
+            if [ -z "$key_email" ]; then
+                echo "Error: Email cannot be empty." >&2
+                exit 1
+            fi
+
+            # Re-check the new email
+            existing_key_count=$(gpg --list-secret-keys --with-colons "$key_email" 2>/dev/null | grep -c "^sec:")
+            if [ "$existing_key_count" -gt 0 ]; then
+                echo "Error: Email '$key_email' is still not unique. Please delete existing keys or choose a different email." >&2
+                exit 1
+            fi
+        fi
+
+        echo "--> Generating new GPG key for chezmoi encryption..."
+        echo "    Name: $key_name"
+        echo "    Email: $key_email"
+
+        # Create GPG key generation batch file with predefined settings
+        local gpg_batch_file
+        gpg_batch_file=$(mktemp)
+        cat > "$gpg_batch_file" <<EOF
+%no-protection
+Key-Type: RSA
+Key-Length: 4096
+Subkey-Type: RSA
+Subkey-Length: 4096
+Name-Real: $key_name
+Name-Email: $key_email
+Expire-Date: 0
+%commit
+EOF
+
+        # Generate the key
+        if ! gpg --batch --generate-key "$gpg_batch_file" 2>&1; then
+            echo "Error: Failed to generate GPG key." >&2
+            rm -f "$gpg_batch_file"
+            exit 1
+        fi
+
+        rm -f "$gpg_batch_file"
+
+        # Get the key ID of the newly generated key using colon-delimited output
+        # Field 5 contains the key ID in lines starting with 'sec:'
+        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons "$key_email" | awk -F: '/^sec:/ {print $5; exit}')
+
+        if [ -z "$GPG_KEY_ID" ]; then
+            echo "Error: Failed to retrieve generated GPG key ID." >&2
+            exit 1
+        fi
+
+        echo "--> GPG key generated successfully: $GPG_KEY_ID"
+    else
+        echo "--> Using existing GPG key: $GPG_KEY_ID"
+    fi
 }
 
 initialize_submodule_repo() {
@@ -134,6 +285,20 @@ initialize_submodule_repo() {
     fi
 
     make_new_folder "dot_chezmoi"
+
+    # Build encryption configuration if enabled
+    local encryption_config=""
+    if [ "$ENABLE_ENCRYPTION" = "yes" ]; then
+        encryption_config="# GPG encryption is enabled for this project
+encryption = \"gpg\"
+
+[gpg]
+# The GPG key ID used for encrypting chezmoi-managed files
+recipient = \"${GPG_KEY_ID}\"
+
+"
+    fi
+
     cat << EOF > ".chezmoi.toml.tmpl"
 # .chezmoi.toml
 # Local project configuration for chezmoi.
@@ -144,6 +309,7 @@ sourceDir = "./${SUBMODULE_DIR}"
 # The destination directory is the project root.
 destDir = "."
 
+${encryption_config}
 [data]
 # This value determines the operational mode for this project's configuration.
 # It will prompt on the first 'chezmoi apply' if a mode was not set during setup.
@@ -228,12 +394,30 @@ EOF
 }
 
 print_success_message() {
+    local encryption_msg=""
+    if [ "$ENABLE_ENCRYPTION" = "yes" ]; then
+        encryption_msg="
+🔐 GPG Encryption is enabled!
+   GPG Key ID: ${GPG_KEY_ID}
+
+   To add encrypted files, use the encrypted_ prefix:
+     chezmoi --config ./.chezmoi.toml add --encrypt file.txt
+   This will create 'encrypted_file.txt.age' in your secrets repository.
+
+   For CI/CD pipelines, you'll need to export and configure the GPG key.
+   See the README for detailed instructions on:
+     - Exporting the private key: gpg --export-secret-keys --armor ${GPG_KEY_ID}
+     - Configuring CI secrets (GPG_PRIVATE_KEY, GPG_KEY_ID)
+     - Importing keys in CI environments
+"
+    fi
+
     cat <<EOF
 
 ✅ Project setup complete!
 
 The secrets submodule has been created in '${SUBMODULE_DIR}' and '.chezmoi.toml' is configured.
-
+${encryption_msg}
 A 'dot_gitignore.tmpl' file has been created in your new secrets repository.
 This template will automatically generate a '.gitignore' file in your project root
 that lists all files managed by chezmoi.
@@ -282,6 +466,20 @@ while [[ $# -gt 0 ]]; do
                 shift 2
             else
                 echo "Error: --dir requires a value." >&2
+                usage
+            fi
+            ;;
+        --encrypt)
+            ENABLE_ENCRYPTION="yes"
+            shift
+            ;;
+        --gpg-key)
+            if [[ -n "$2" && ! "$2" =~ ^-- ]]; then
+                GPG_KEY_ID="$2"
+                ENABLE_ENCRYPTION="yes"
+                shift 2
+            else
+                echo "Error: --gpg-key requires a value." >&2
                 usage
             fi
             ;;

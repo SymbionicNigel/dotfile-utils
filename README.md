@@ -88,12 +88,45 @@ project (the one that includes this repository as a submodule).
 
 ### Adding a new file
 
-To add a new file to be managed by `chezmoi`, use the `add` command. `chezmoi`
-will copy the file into its source directory, ready to be committed.
+To add a new file to be managed by `chezmoi`, you have two options:
+
+#### Option 1: Use the helper script (recommended for project files)
+
+The `chezmoi-add-secret.sh` script simplifies adding files from your project directory
+to chezmoi. It handles the limitation where chezmoi won't add files from directories
+it manages.
+
+```bash
+# Add a file
+./dotfile-utils/scripts/chezmoi-add-secret.sh .env
+
+# Add an encrypted file
+./dotfile-utils/scripts/chezmoi-add-secret.sh --encrypt .env
+
+# Show help
+./dotfile-utils/scripts/chezmoi-add-secret.sh --help
+```
+
+The script will:
+
+1. Copy the file to the chezmoi source directory with proper naming
+   (e.g., `.env` → `dot_env`)
+2. Add `encrypted_` prefix if `--encrypt` is used
+   (e.g., `.env` → `encrypted_dot_env`)
+3. Encrypt the file using GPG if encryption is enabled
+4. Apply changes to deploy the file back
+5. Stage the file in git for commit
+
+#### Option 2: Use chezmoi directly
+
+For files outside your project directory, use the standard `chezmoi add` command:
 
 ```bash
 # Add a configuration file
 chezmoi --config ./.chezmoi.toml add <filename>
+
+# Add an encrypted file (requires GPG encryption to be configured)
+chezmoi --config ./.chezmoi.toml add --encrypt <filename>
 ```
 
 ### Editing a file
@@ -164,7 +197,33 @@ variable to my_value, specify:
 using GPG. This is ideal for managing files with sensitive data, like shell history
 or private keys.
 
-To encrypt a file, add it with the `--encrypt` flag.
+#### Enabling Encryption During Bootstrap
+
+When running the bootstrap script for a new project, you'll be prompted to enable
+GPG encryption. You can also specify it via command-line flags:
+
+```bash
+# Enable encryption and let the script generate a new GPG key
+./dotfile-utils/bootstrap.sh --encrypt
+
+# Enable encryption with an existing GPG key
+./dotfile-utils/bootstrap.sh --encrypt --gpg-key <KEY_ID>
+```
+
+If you enable encryption, the bootstrap script will:
+
+1. Prompt you to either use an existing GPG key or generate a new one
+2. Generate a new 4096-bit RSA key (if creating new) with predefined secure settings:
+   - Key type: RSA
+   - Key length: 4096 bits
+   - No expiration (suitable for long-term project encryption)
+   - No passphrase (for automated `chezmoi` operations)
+   - Name format: `<project-name>-chezmoi@localhost`
+3. Configure `.chezmoi.toml` with the GPG key ID for automatic encryption/decryption
+
+#### Adding Encrypted Files
+
+To encrypt a file, add it with the `--encrypt` flag:
 
 ```bash
 chezmoi --config ./.chezmoi.toml add --encrypt ~/.private-key
@@ -172,6 +231,50 @@ chezmoi --config ./.chezmoi.toml add --encrypt ~/.private-key
 
 When you run `chezmoi apply`, the file will be decrypted and placed in the correct
 location. The encrypted version remains safely in your git repository.
+
+#### Using Encryption in CI/CD Pipelines
+
+To use encrypted chezmoi files in CI/CD environments, you need to export your GPG
+key and configure it as a secret in your CI platform.
+
+##### Export your GPG private key
+
+```bash
+# List your GPG keys to find the KEY_ID (shown in bootstrap output)
+gpg --list-secret-keys --keyid-format LONG
+
+# Export the private key (replace KEY_ID with your actual key ID)
+gpg --export-secret-keys --armor <KEY_ID> > private-key.asc
+```
+
+##### Configure CI Secrets
+
+Add these secrets to your CI platform (GitHub Actions, GitLab CI, etc.):
+
+- `GPG_PRIVATE_KEY`: The contents of `private-key.asc`
+- `GPG_KEY_ID`: Your GPG key ID (optional, for verification)
+
+##### Import key in CI
+
+```bash
+# In your CI script (before running chezmoi apply)
+echo "$GPG_PRIVATE_KEY" | gpg --import --batch --yes
+
+# Verify the key was imported (optional)
+gpg --list-secret-keys "$GPG_KEY_ID"
+
+# Now you can run chezmoi apply
+chezmoi --config ./.chezmoi.toml apply
+```
+
+##### Security Notes
+
+- **Never commit the private key used to manage chezmoi encryption to git, all
+  other private keys included should be themselves encrypted**
+- Delete `private-key.asc` after adding it to CI secrets
+- The generated keys have no passphrase for automation convenience, so protect
+  the CI secrets carefully
+- Consider using separate GPG keys for different environments (dev/staging/prod)
 
 ### WSL specific code within templates
 
