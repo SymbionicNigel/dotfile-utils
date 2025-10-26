@@ -309,6 +309,14 @@ sourceDir = "./${SUBMODULE_DIR}"
 # The destination directory is the project root.
 destDir = "."
 
+[merge]
+command = "code"
+args = ["--wait", "--diff", "{{ .Destination }}", "{{ .Source }}", "{{ .Target }}"]
+
+[bitwarden]
+# Automatically unlock Bitwarden when needed
+unlock = "auto"
+
 ${encryption_config}
 [data]
 # This value determines the operational mode for this project's configuration.

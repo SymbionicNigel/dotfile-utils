@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Source Bitwarden session if available (suppress output for script usage)
+# Get parent repository root (handles both submodule and parent repo contexts)
+PROJECT_ROOT=$(git rev-parse --show-superproject-working-tree 2>/dev/null)
+if [ -z "$PROJECT_ROOT" ]; then
+    PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Error: Not in a git repository"; exit 1; }
+fi
+if [ -f "$PROJECT_ROOT/.env.bitwarden" ] || [ -n "${BW_SESSION:-}" ]; then
+    source "$PROJECT_ROOT/dotfile-utils/scripts/source_bitwarden_session.sh" >/dev/null 2>&1 || true
+fi
+
 # Configuration
 CHEZMOI_CONFIG=".chezmoi.toml"
 SOURCE_DIR=""
