@@ -22,7 +22,7 @@ if [ -z "$PROJECT_ROOT" ]; then
     return 1
 fi
 
-ENV_FILE="$PROJECT_ROOT/.bitwarden.env"
+ENV_FILE="$PROJECT_ROOT/.env.bitwarden"
 
 # Check if Bitwarden CLI is installed
 if ! command -v bw &> /dev/null; then
@@ -30,14 +30,14 @@ if ! command -v bw &> /dev/null; then
     return 1
 fi
 
-# Load Bitwarden credentials from .bitwarden.env if it exists
+# Load Bitwarden credentials from .env.bitwarden if it exists
 if [ -f "$ENV_FILE" ]; then
     set -a
     # shellcheck source=/dev/null
     source "$ENV_FILE"
     set +a
 elif [ -z "$BW_CLIENTID" ] || [ -z "$BW_CLIENTSECRET" ]; then
-    echo "Error: Create .bitwarden.env: cp .bitwarden.env.example .bitwarden.env" >&2
+    echo "Error: Create .env.bitwarden: cp .env.bitwarden.example .env.bitwarden" >&2
     return 1
 fi
 

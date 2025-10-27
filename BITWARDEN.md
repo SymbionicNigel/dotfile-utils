@@ -18,13 +18,13 @@ This project uses Bitwarden CLI to manage secrets with chezmoi.
    - Click **View API Key**
    - Copy your `client_id`, `client_secret`
 
-2. Create `.bitwarden.env` file:
+2. Create `.env.bitwarden` file:
 
    ```bash
-   cp .bitwarden.env.example .bitwarden.env
+   cp .env.bitwarden.example .env.bitwarden
    ```
 
-3. Edit `.bitwarden.env` and add your credentials:
+3. Edit `.env.bitwarden` and add your credentials:
 
    ```bash
    BW_CLIENTID=user.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -92,12 +92,12 @@ In CI environments, set these as secrets:
 - `BW_CLIENTSECRET`
 - `BW_PASSWORD`
 
-Then source the script as normal - it will use environment variables if `.bitwarden.env`
+Then source the script as normal - it will use environment variables if `.env.bitwarden`
 doesn't exist.
 
 ## Security Notes
 
-- `.bitwarden.env` is gitignored - never commit it
+- `.env.bitwarden` is gitignored - never commit it
 - Store your master password securely
 - Consider using a separate Bitwarden organization for CI secrets
 - Use `bw lock` when done to secure your vault
