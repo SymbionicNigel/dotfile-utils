@@ -92,7 +92,7 @@ case "$BW_STATUS" in
 esac
 
 # Only create alias if running interactively (not sourced by another script)
-if [ -n "$PS1" ] || [ -t 0 ]; then
+if [ -n "${PS1:-}" ] || [ -t 0 ]; then
     alias czm='chezmoi --config ./.chezmoi.toml'
     echo "✓ Bitwarden session configured. Run: czm apply"
 fi
