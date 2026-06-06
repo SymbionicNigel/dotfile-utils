@@ -9,6 +9,13 @@
 #
 set -euf
 
+# Non-interactive guard: refuse to silently fall through to a prompt-driven
+# path when there's no TTY and no fork user / CI override to work from.
+if [ ! -t 0 ] && [ "${CI:-}" != "true" ] && [ -z "${CHEZMOI_FORK_USER:-}" ]; then
+  echo "Error: non-interactive invocation requires CHEZMOI_FORK_USER or CI=true." >&2
+  exit 1
+fi
+
 usage() {
     cat <<EOF
 Usage: $(basename "$0") [-h|--help]
@@ -33,7 +40,7 @@ EOF
 # --- Configuration ---
 # Pin the exact version of chezmoi you want to use.
 # Find versions at: https://github.com/twpayne/chezmoi/releases
-CHEZMOI_VERSION="v2.63.0" # Must be full version identifier!!
+CHEZMOI_VERSION="v2.70.5" # Must be full version identifier!!
 ORIGINAL_REPO="twpayne/chezmoi"
 INSTALL_DIR="${HOME}/.local/bin"
 
@@ -176,9 +183,12 @@ if ! gh auth status >/dev/null 2>&1; then
   exit 1
 fi
 
-# Dynamically determine the user's GitHub username and set the fork repository
-GITHUB_USER=$(gh config get user -h github.com)
-FORK_REPO="${GITHUB_USER}/chezmoi"
+# Which GitHub user owns the chezmoi fork. Override via CHEZMOI_FORK_USER for
+# CI or shared installs (e.g. the repo owner); defaults to the locally-
+# authenticated user. The default expansion only runs when the override is
+# unset, so CI never calls `gh config get user` as the bot.
+CHEZMOI_FORK_USER="${CHEZMOI_FORK_USER:-$(gh config get user -h github.com)}"
+FORK_REPO="${CHEZMOI_FORK_USER}/chezmoi"
 
 if command -v chezmoi >/dev/null 2>&1; then
   # chezmoi --version output is "chezmoi version v2.48.0, commit..."
@@ -203,10 +213,16 @@ case "${ARCH}" in
 esac
 
 # --- Mirroring and Installation ---
-echo "--- Ensuring personal artifact mirror is up to date ---"
-ensure_fork_exists "$FORK_REPO"
-
-ensure_release_mirrored "$FORK_REPO"
+# In CI the authenticated user is the bot, which can't create forks/releases.
+# It can still read the public fork, so skip the write path; the maintainer is
+# responsible for mirroring a new pinned version locally before CI needs it.
+if [ "${CI:-}" = "true" ]; then
+  echo "CI mode: skipping fork/release management (read-only from ${FORK_REPO})."
+else
+  echo "--- Ensuring personal artifact mirror is up to date ---"
+  ensure_fork_exists "$FORK_REPO"
+  ensure_release_mirrored "$FORK_REPO"
+fi
 
 # --- Download and Install ---
 echo "--- Installing chezmoi for local system (${OS}-${ARCH}) ---"
