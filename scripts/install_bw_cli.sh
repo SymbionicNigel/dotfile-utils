@@ -15,8 +15,11 @@ EOF
 }
 
 get_latest_version() {
-    # Use gh CLI to get latest release tag for CLI
-    gh release list --repo bitwarden/clients --limit 1 --json tagName --jq '.[0].tagName' | grep -oP 'cli-v\K[0-9.]+'
+    # bitwarden/clients is a monorepo (desktop-/browser-/cli-/web-v tags), so
+    # the newest release overall is often not the CLI. Scan recent releases and
+    # take the newest cli-v tag rather than assuming the top one is the CLI.
+    gh release list --repo bitwarden/clients --limit 100 --json tagName \
+        --jq 'map(.tagName | select(startswith("cli-v")))[0]' | grep -oP 'cli-v\K[0-9.]+'
 }
 
 get_installed_version() {

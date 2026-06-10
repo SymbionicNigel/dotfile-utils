@@ -41,6 +41,14 @@ elif [ -z "$BW_CLIENTID" ] || [ -z "$BW_CLIENTSECRET" ]; then
     return 1
 fi
 
+# Non-interactive guard: refuse to silently block on the `bw unlock` prompt.
+# Runs after .env.bitwarden is sourced so a local non-interactive caller can
+# still supply BW_PASSWORD there; CI supplies it directly via env.
+if [ ! -t 0 ] && [ -z "${BW_PASSWORD:-}" ]; then
+    echo "Error: BW_PASSWORD env var required when sourcing this script non-interactively (e.g. in CI)." >&2
+    return 1 2>/dev/null || exit 1
+fi
+
 # Check Bitwarden status and authenticate/unlock as needed
 BW_STATUS=$(bw status 2>/dev/null | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 

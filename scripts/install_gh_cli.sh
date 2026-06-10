@@ -43,7 +43,7 @@ install_gh_cli() {
         case "$PKG_MANAGER" in
             'apt-get')
                 sudo apt-get update > /dev/null
-                sudo apt-get install gh > /dev/null
+                sudo apt-get install -y gh > /dev/null
                 ;;
             *)
                 ;;
